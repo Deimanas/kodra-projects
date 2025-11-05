@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Kodra Projects Slider
- * Version: 1.1.9
+ * Version: 1.1.10
  * GitHub Plugin URI: https://github.com/Deimanas/kodra-projects
  * Primary Branch: main
  */
@@ -66,8 +66,8 @@ class Kodra_Projects_Slider {
     }
 
     public function assets() {
-        wp_enqueue_style( 'kodra-css', plugins_url( 'assets/css/slider.css', __FILE__ ), [], '1.1.9' );
-        wp_enqueue_script( 'kodra-js', plugins_url( 'assets/js/slider.js', __FILE__ ), [], '1.1.9', true );
+        wp_enqueue_style( 'kodra-css', plugins_url( 'assets/css/slider.css', __FILE__ ), [], '1.1.10' );
+        wp_enqueue_script( 'kodra-js', plugins_url( 'assets/js/slider.js', __FILE__ ), [], '1.1.10', true );
     }
 
     public function sc() {
@@ -100,13 +100,7 @@ class Kodra_Projects_Slider {
                         <div class="kodra-slide">
                             <div class="card">
                                 <div class="title">
-                                    <?php if ( $url ) : ?>
-                                        <a href="<?php echo esc_url( $url ); ?>" target="_blank" rel="noopener">
-                                            <?php echo esc_html( $title ); ?>
-                                        </a>
-                                    <?php else : ?>
-                                        <?php echo esc_html( $title ); ?>
-                                    <?php endif; ?>
+                                    <?php echo esc_html( $title ); ?>
                                 </div>
                                 <div class="site-url">
                                     <?php if ( $url ) : ?>
@@ -125,9 +119,6 @@ class Kodra_Projects_Slider {
                                     <?php endif; ?>
                                 </div>
                             </div>
-                            <?php if ( $url ) : ?>
-                                <a class="card-link" href="<?php echo esc_url( $url ); ?>" target="_blank" rel="noopener"></a>
-                            <?php endif; ?>
                         </div>
                         <?php
                     endwhile;

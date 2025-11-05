@@ -190,29 +190,37 @@ end(e);
 });
 };
 KodraSlider.prototype.bindWheel=function(){
-var s=this;
-this.root.addEventListener('wheel',function(e){
-if(s.centered){
-return;
-}
-if(Math.abs(e.deltaY)<=Math.abs(e.deltaX)){
-return;
-}
-e.preventDefault();
-if(s.wheelLock){
-return;
-}
-s.wheelLock=true;
-if(e.deltaY>0){
-s.next();
-}else if(e.deltaY<0){
-s.prev();
-}
-clearTimeout(s.wheelUnlock);
-s.wheelUnlock=setTimeout(function(){
-s.wheelLock=false;
-},s.duration+100);
-},{passive:false});
+    var s=this;
+    this.root.addEventListener('wheel',function(e){
+        if(s.centered){
+            return;
+        }
+        var ax=Math.abs(e.deltaX);
+        var ay=Math.abs(e.deltaY);
+        if(ax<1&&ay<1){
+            return;
+        }
+        e.preventDefault();
+        if(s.wheelLock){
+            return;
+        }
+        s.wheelLock=true;
+        var forward;
+        if(ax>ay){
+            forward=e.deltaX>0;
+        }else{
+            forward=e.deltaY>0;
+        }
+        if(forward){
+            s.next();
+        }else{
+            s.prev();
+        }
+        clearTimeout(s.wheelUnlock);
+        s.wheelUnlock=setTimeout(function(){
+            s.wheelLock=false;
+        },s.duration+100);
+    },{passive:false});
 };
 document.addEventListener('DOMContentLoaded',function(){
 document.querySelectorAll('.kodra-slider').forEach(function(sl){
