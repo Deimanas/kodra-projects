@@ -1,0 +1,97 @@
+name: Build & Release WordPress Plugin ZIP
+
+on:
+  push:
+    tags:
+      - 'v*'   # e.g., v1.6.4.3
+
+permissions:
+  contents: write
+
+env:
+  SLUG: kodra-projects            # inner folder name inside the ZIP (no versions)
+  MAIN_FILE: kodra-projects-slider.php   # main plugin file to bump
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Derive version from tag
+        id: ver
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/}"
+          VERSION="${VERSION#v}"
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Inject version into plugin headers (robust)
+        run: |
+          set -e
+          VERSION="${{ steps.ver.outputs.VERSION }}"
+          FILE="${{ env.MAIN_FILE }}"
+
+          if [ ! -f "$FILE" ]; then
+            echo "Error: main plugin file $FILE not found."
+            exit 1
+          fi
+
+          # Try several common header formats; replace the FIRST occurrence only.
+          # 1) Docblock line like:  * Version: X
+          sed -i -E "0,/^[[:space:]]*\*[[:space:]]*Version:[[:space:]]*.*$/s// * Version: ${VERSION}/" "$FILE"
+          # 2) Plain header line without asterisk: Version: X
+          sed -i -E "0,/^[[:space:]]*Version:[[:space:]]*.*$/s//Version: ${VERSION}/" "$FILE"
+          # 3) Lowercase/case-insensitive (fallback)
+          sed -i -E "0,/^[[:space:]]*[Vv]ersion:[[:space:]]*.*$/s//Version: ${VERSION}/" "$FILE"
+
+          echo "After replacement, header preview:"
+          head -n 40 "$FILE" | nl -ba | sed -n '1,40p'
+
+      - name: Verify version header matches tag
+        run: |
+          set -e
+          VERSION="${{ steps.ver.outputs.VERSION }}"
+          FILE="${{ env.MAIN_FILE }}"
+          if ! head -n 60 "$FILE" | grep -Ei "^[[:space:]]*(\*\s*)?Version:[[:space:]]*${VERSION}[[:space:]]*$" > /dev/null; then
+            echo "Error: Version header does not match tag ${VERSION} in ${FILE}."
+            exit 1
+          fi
+          echo "Version header OK: ${VERSION}"
+
+      - name: Build plugin ZIPs (inner folder is stable slug)
+        id: build
+        run: |
+          set -e
+          VERSION="${{ steps.ver.outputs.VERSION }}"
+          SLUG="${{ env.SLUG }}"
+          WORKDIR="$(mktemp -d)"
+          DEST="${WORKDIR}/${SLUG}"
+          mkdir -p "$DEST"
+
+          # Copy repo into a folder named strictly as the slug (no versions).
+          # Exclude non-plugin files and CI configs.
+          rsync -a             --exclude ".git"             --exclude ".github"             --exclude "*.zip"             --exclude "node_modules"             --exclude ".DS_Store"             --exclude "README.md"             ./ "$DEST/"
+
+          # Create two assets:
+          #   1) Versioned archive name for traceability
+          #   2) Non-versioned archive for easy install
+          ( cd "$WORKDIR" && zip -r "${SLUG}-v${VERSION}.zip" "${SLUG}" >/dev/null )
+          ( cd "$WORKDIR" && zip -r "${SLUG}.zip" "${SLUG}" >/dev/null )
+
+          mv "$WORKDIR/${SLUG}-v${VERSION}.zip" "./"
+          mv "$WORKDIR/${SLUG}.zip" "./"
+
+          echo "versioned_zip=${SLUG}-v${VERSION}.zip" >> $GITHUB_OUTPUT
+          echo "plain_zip=${SLUG}.zip" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ steps.build.outputs.versioned_zip }}
+            ${{ steps.build.outputs.plain_zip }}
+          tag_name: ${{ github.ref_name }}
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
