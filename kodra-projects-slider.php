@@ -1,8 +1,11 @@
 <?php
-/*
-Plugin Name: Kodra Projects Slider
-Version: 1.1.7
-*/
+/**
+  * Plugin Name: Kodra Projects Slider
+ * Version: 1.1.8
+ * GitHub Plugin URI: https://github.com/Deimanas/kodra-projects
+ * Primary Branch: main
+ */
+
 if(!defined('ABSPATH'))exit;class Kodra_Projects_Slider{public function __construct(){add_action('init',[$this,'register_cpt']);add_action('add_meta_boxes',[$this,'add_meta']);add_action('save_post',[$this,'save_meta']);add_shortcode('kodra_projektai_slider',[$this,'sc']);add_action('wp_enqueue_scripts',[$this,'assets']);}
 public function register_cpt(){register_post_type('kodra_projektas',['labels'=>['name'=>'Projektai','singular_name'=>'Projektas'],'public'=>true,'show_in_rest'=>true,'supports'=>['title','thumbnail']]);}
 public function add_meta(){add_meta_box('kodra_project_url','Svetainės nuoroda',[$this,'box'],'kodra_projektas');}
