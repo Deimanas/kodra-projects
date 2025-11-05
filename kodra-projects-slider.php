@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Kodra Projects Slider
- * Version: 1.1.10
+ * Version: 1.1.11
  * GitHub Plugin URI: https://github.com/Deimanas/kodra-projects
  * Primary Branch: main
  */
@@ -66,8 +66,8 @@ class Kodra_Projects_Slider {
     }
 
     public function assets() {
-        wp_enqueue_style( 'kodra-css', plugins_url( 'assets/css/slider.css', __FILE__ ), [], '1.1.10' );
-        wp_enqueue_script( 'kodra-js', plugins_url( 'assets/js/slider.js', __FILE__ ), [], '1.1.10', true );
+        wp_enqueue_style( 'kodra-css', plugins_url( 'assets/css/slider.css', __FILE__ ), [], '1.1.11' );
+        wp_enqueue_script( 'kodra-js', plugins_url( 'assets/js/slider.js', __FILE__ ), [], '1.1.11', true );
     }
 
     public function sc() {
@@ -113,7 +113,7 @@ class Kodra_Projects_Slider {
                                 </div>
                                 <div class="thumb-wrap">
                                     <?php if ( $thumb ) : ?>
-                                        <img src="<?php echo esc_url( $thumb ); ?>" alt="<?php echo esc_attr( $title ); ?>" loading="lazy" />
+                                        <img src="<?php echo esc_url( $thumb ); ?>" alt="<?php echo esc_attr( $title ); ?>" loading="lazy" draggable="false" />
                                     <?php else : ?>
                                         <div class="no-thumb">Nėra paveikslėlio</div>
                                     <?php endif; ?>

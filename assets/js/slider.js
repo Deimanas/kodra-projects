@@ -12,7 +12,10 @@ this.startX=0;
 this.deltaX=0;
 this.resumeTimeout=null;
 this.wheelLock=false;
-this.centered=false;
+    this.centered=false;
+    this.isTransitioning=false;
+    this._onTransition=null;
+    this._transitionTimer=null;
 this.updateMeasurements(true);
 this.bindNav();
 this.attach();
@@ -67,38 +70,92 @@ this.updateMeasurements(false);
 this.jumpToStart();
 };
 KodraSlider.prototype.jumpToStart=function(){
-this.track.style.transition='none';
-this.track.style.transform='translateX(0px)';
-this.track.offsetHeight;
-this.attach();
+    if(this._onTransition){
+        this.track.removeEventListener('transitionend',this._onTransition);
+        this._onTransition=null;
+    }
+    if(this._transitionTimer){
+        clearTimeout(this._transitionTimer);
+        this._transitionTimer=null;
+    }
+    this.track.style.transition='none';
+    this.track.style.transform='translateX(0px)';
+    this.track.offsetHeight;
+    this.attach();
+    this.isTransitioning=false;
 };
 KodraSlider.prototype.next=function(){
-if(this.centered){
-return;
-}
-var s=this;
-this.track.style.transform='translateX('+(-this.step)+'px)';
-clearTimeout(this.tReset);
-this.tReset=setTimeout(function(){
-s.track.appendChild(s.track.firstElementChild);
-s.jumpToStart();
-s.updateMeasurements(false);
-},this.duration);
-this.restartAutoAfterDelay();
+    if(this.centered||this.isTransitioning){
+        return;
+    }
+    var s=this;
+    this.isTransitioning=true;
+    if(this._onTransition){
+        this.track.removeEventListener('transitionend',this._onTransition);
+    }
+    this._onTransition=function(){
+        s.track.removeEventListener('transitionend',s._onTransition);
+        s._onTransition=null;
+        if(s._transitionTimer){
+            clearTimeout(s._transitionTimer);
+            s._transitionTimer=null;
+        }
+        s.track.style.transition='none';
+        s.track.appendChild(s.track.firstElementChild);
+        s.track.style.transform='translateX(0px)';
+        s.track.offsetHeight;
+        s.attach();
+        s.updateMeasurements(false);
+        s.isTransitioning=false;
+    };
+    this.track.addEventListener('transitionend',this._onTransition,{once:true});
+    if(this._transitionTimer){
+        clearTimeout(this._transitionTimer);
+    }
+    this._transitionTimer=setTimeout(function(){
+        if(s._onTransition){
+            s._onTransition();
+        }
+    },this.duration+120);
+    this.track.style.transform='translateX('+(-this.step)+'px)';
+    this.restartAutoAfterDelay();
 };
 KodraSlider.prototype.prev=function(){
-if(this.centered){
-return;
-}
-var s=this;
-this.track.style.transition='none';
-this.track.insertBefore(this.track.lastElementChild,this.track.firstElementChild);
-this.updateMeasurements(false);
-this.track.style.transform='translateX('+(-this.step)+'px)';
-this.track.offsetHeight;
-this.attach();
-this.track.style.transform='translateX(0px)';
-this.restartAutoAfterDelay();
+    if(this.centered||this.isTransitioning){
+        return;
+    }
+    var s=this;
+    this.isTransitioning=true;
+    if(this._onTransition){
+        this.track.removeEventListener('transitionend',this._onTransition);
+        this._onTransition=null;
+    }
+    this.track.style.transition='none';
+    this.track.insertBefore(this.track.lastElementChild,this.track.firstElementChild);
+    this.updateMeasurements(false);
+    this.track.style.transform='translateX('+(-this.step)+'px)';
+    this.track.offsetHeight;
+    this.attach();
+    this._onTransition=function(){
+        s.track.removeEventListener('transitionend',s._onTransition);
+        s._onTransition=null;
+        if(s._transitionTimer){
+            clearTimeout(s._transitionTimer);
+            s._transitionTimer=null;
+        }
+        s.isTransitioning=false;
+    };
+    this.track.addEventListener('transitionend',this._onTransition,{once:true});
+    if(this._transitionTimer){
+        clearTimeout(this._transitionTimer);
+    }
+    this._transitionTimer=setTimeout(function(){
+        if(s._onTransition){
+            s._onTransition();
+        }
+    },this.duration+120);
+    this.track.style.transform='translateX(0px)';
+    this.restartAutoAfterDelay();
 };
 KodraSlider.prototype.startAuto=function(){
 if(this.centered){
@@ -143,27 +200,30 @@ n.addEventListener('click',this.next.bind(this));
 }
 };
 KodraSlider.prototype.bindDrag=function(){
-var s=this;
-var el=this.track;
-var thr=50;
-el.addEventListener('pointerdown',function(e){
-if(s.centered){
-return;
-}
-s.isDown=true;
-s.startX=e.clientX;
-s.deltaX=0;
-s.stopAuto();
-el.style.transition='none';
+    var s=this;
+    var el=this.track;
+    var thr=50;
+    el.addEventListener('pointerdown',function(e){
+        if(s.centered||s.isTransitioning){
+            return;
+        }
+        if(e.target.closest&&e.target.closest('a')){
+            return;
+        }
+        s.isDown=true;
+        s.startX=e.clientX;
+        s.deltaX=0;
+        s.stopAuto();
+        el.style.transition='none';
 el.setPointerCapture&&el.setPointerCapture(e.pointerId);
 });
-el.addEventListener('pointermove',function(e){
-if(!s.isDown){
-return;
-}
-s.deltaX=e.clientX-s.startX;
-el.style.transform='translateX('+s.deltaX+'px)';
-});
+    el.addEventListener('pointermove',function(e){
+        if(!s.isDown){
+            return;
+        }
+        s.deltaX=e.clientX-s.startX;
+        el.style.transform='translateX('+s.deltaX+'px)';
+    });
 function end(e){
 if(!s.isDown){
 return;
@@ -192,7 +252,7 @@ end(e);
 KodraSlider.prototype.bindWheel=function(){
     var s=this;
     this.root.addEventListener('wheel',function(e){
-        if(s.centered){
+        if(s.centered||s.isTransitioning){
             return;
         }
         var ax=Math.abs(e.deltaX);
